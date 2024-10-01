@@ -19,9 +19,9 @@ deinstall:
 	rm /usr/local/bin/cfdelauth
 
 uninstall:
-        rm /usr/local/bin/cfgetauth
-        rm /usr/local/bin/cflocate
-        rm /usr/local/bin/cfplace
-        rm /usr/local/bin/cfremove
+	rm /usr/local/bin/cfgetauth
+	rm /usr/local/bin/cflocate
+	rm /usr/local/bin/cfplace
+	rm /usr/local/bin/cfremove
 	rm /usr/local/bin/cfsetauth
 	rm /usr/local/bin/cfdelauth
