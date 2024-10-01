@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Directory for storing auth files
+CONFIG_DIR="$HOME/.config/cloudflare-tools"
+
+# Create directory if it doesn't exist
+mkdir -p "$CONFIG_DIR"
+
 # Function to securely store data with encryption
 store_secure_data() {
   local APIKEY="$1"
@@ -8,15 +14,15 @@ store_secure_data() {
   local PASSWORD="$4"
 
   # Encrypt data with PBKDF2 and save as auth.bin
-  echo -e "APIKEY=$APIKEY\nEMAIL=$EMAIL\nZONE_ID=$ZONE_ID" | openssl enc -aes-256-cbc -salt -pbkdf2 -k "$PASSWORD" -out auth.bin
+  echo -e "APIKEY=$APIKEY\nEMAIL=$EMAIL\nZONE_ID=$ZONE_ID" | openssl enc -aes-256-cbc -salt -pbkdf2 -k "$PASSWORD" -out "$CONFIG_DIR/auth.bin"
 
   # Set restrictive permissions
-  chmod 600 auth.bin
+  chmod 600 "$CONFIG_DIR/auth.bin"
 
   # Delete auth.txt if it exists
-  [ -f auth.txt ] && rm -f auth.txt
+  [ -f "$CONFIG_DIR/auth.txt" ] && rm -f "$CONFIG_DIR/auth.txt"
 
-  echo "Data has been encrypted and stored securely in auth.bin"
+  echo "Data has been encrypted and stored securely in $CONFIG_DIR/auth.bin"
 }
 
 # Function to securely store plaintext data
@@ -26,15 +32,15 @@ store_plaintext_data() {
   local ZONE_ID="$3"
 
   # Store data in plaintext and save as auth.txt
-  echo -e "APIKEY=$APIKEY\nEMAIL=$EMAIL\nZONE_ID=$ZONE_ID" > auth.txt
+  echo -e "APIKEY=$APIKEY\nEMAIL=$EMAIL\nZONE_ID=$ZONE_ID" > "$CONFIG_DIR/auth.txt"
 
   # Set restrictive permissions
-  chmod 600 auth.txt
+  chmod 600 "$CONFIG_DIR/auth.txt"
 
   # Delete auth.bin if it exists
-  [ -f auth.bin ] && rm -f auth.bin
+  [ -f "$CONFIG_DIR/auth.bin" ] && rm -f "$CONFIG_DIR/auth.bin"
 
-  echo "Data has been stored in plaintext in auth.txt"
+  echo "Data has been stored in plaintext in $CONFIG_DIR/auth.txt"
 }
 
 # Prompt for user input

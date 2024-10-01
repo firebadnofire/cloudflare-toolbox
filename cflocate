@@ -1,23 +1,35 @@
 #!/bin/bash
+usage() {
+  echo "Usage: $0 sub.your.domain"
+  echo
+  echo "  sub.your.domain               domain of the record"
+}
+
+if [ $# -lt 1 ]; then
+  usage
+  exit 1
+fi
+
 ### IMPORT VARS ###
 
-# Function to import variables from auth.txt (encrypted or plaintext)
+CONFIG_DIR="$HOME/.config/cloudflare-tools"
+
 import_auth_vars() {
   # Check if auth.txt or auth.bin exists
-  if [[ ! -f "auth.txt" && ! -f "auth.bin" ]]; then
+  if [[ ! -f "$CONFIG_DIR/auth.txt" && ! -f "$CONFIG_DIR/auth.bin" ]]; then
     echo "No auth file found!"
     return 1
   fi
 
   # Detect whether the file is encrypted (auth.bin) or plaintext (auth.txt)
-  if [[ -f "auth.bin" ]]; then
+  if [[ -f "$CONFIG_DIR/auth.bin" ]]; then
     # File is encrypted, prompt for password
     echo "The file appears to be encrypted."
     read -s -p "Enter password to decrypt: " PASSWORD
     echo
 
     # Attempt to decrypt and source variables
-    decrypted_data=$(openssl enc -aes-256-cbc -d -pbkdf2 -in auth.bin -k "$PASSWORD" 2>/dev/null)
+    decrypted_data=$(openssl enc -aes-256-cbc -d -pbkdf2 -in "$CONFIG_DIR/auth.bin" -k "$PASSWORD" 2>/dev/null)
 
     if [[ $? -ne 0 ]]; then
       echo "Failed to decrypt the file. Incorrect password or file corrupted."
@@ -26,9 +38,9 @@ import_auth_vars() {
 
     # Read the decrypted data into the current environment
     eval "$decrypted_data"
-  elif [[ -f "auth.txt" ]]; then
+  elif [[ -f "$CONFIG_DIR/auth.txt" ]]; then
     # File is in plaintext, source it directly
-    source auth.txt
+    source "$CONFIG_DIR/auth.txt"
   fi
 
   # Verify the variables have been imported
