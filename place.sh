@@ -19,25 +19,22 @@ fi
 
 ### IMPORT VARS ###
 
-# Function to import variables from auth.txt (encrypted or plaintext)
 import_auth_vars() {
-  # Check if auth.txt exists
-  if [[ ! -f "auth.txt" ]]; then
-    echo "auth.txt not found!"
+  # Check if auth.txt or auth.bin exists
+  if [[ ! -f "auth.txt" && ! -f "auth.bin" ]]; then
+    echo "No auth file found!"
     return 1
   fi
 
-  # Try to detect if the file is encrypted
-  file_type=$(file --mime auth.txt)
-
-  if [[ $file_type == *"application/octet-stream"* ]]; then
-    # File is likely encrypted, prompt for password
+  # Detect whether the file is encrypted (auth.bin) or plaintext (auth.txt)
+  if [[ -f "auth.bin" ]]; then
+    # File is encrypted, prompt for password
     echo "The file appears to be encrypted."
     read -s -p "Enter password to decrypt: " PASSWORD
     echo
 
     # Attempt to decrypt and source variables
-    decrypted_data=$(openssl enc -aes-256-cbc -d -pbkdf2 -in auth.txt -k "$PASSWORD" 2>/dev/null)
+    decrypted_data=$(openssl enc -aes-256-cbc -d -pbkdf2 -in auth.bin -k "$PASSWORD" 2>/dev/null)
 
     if [[ $? -ne 0 ]]; then
       echo "Failed to decrypt the file. Incorrect password or file corrupted."
@@ -46,20 +43,19 @@ import_auth_vars() {
 
     # Read the decrypted data into the current environment
     eval "$decrypted_data"
-
-  else
+  elif [[ -f "auth.txt" ]]; then
     # File is in plaintext, source it directly
     source auth.txt
   fi
 
   # Verify the variables have been imported
   if [[ -z "$APIKEY" || -z "$EMAIL" || -z "$ZONE_ID" ]]; then
-    echo "Failed to import variables from auth.txt"
+    echo "Failed to import variables from the auth file"
     return 1
   fi
 }
 
-# Import auth.txt
+# Import auth file
 import_auth_vars
 
 ### END IMPORT VARS ###

@@ -7,16 +7,13 @@ store_secure_data() {
   local ZONE_ID="$3"
   local PASSWORD="$4"
 
-  # Encrypt data with PBKDF2 and save as auth.bin
-  echo -e "APIKEY=$APIKEY\nEMAIL=$EMAIL\nZONE_ID=$ZONE_ID" | openssl enc -aes-256-cbc -salt -pbkdf2 -k "$PASSWORD" -out auth.bin
+  # Encrypt data with PBKDF2
+  echo -e "APIKEY=$APIKEY\nEMAIL=$EMAIL\nZONE_ID=$ZONE_ID" | openssl enc -aes-256-cbc -salt -pbkdf2 -k "$PASSWORD" -out auth.txt
 
   # Set restrictive permissions
-  chmod 600 auth.bin
+  chmod 600 auth.txt
 
-  # Delete auth.txt if it exists
-  [ -f auth.txt ] && rm -f auth.txt
-
-  echo "Data has been encrypted and stored securely in auth.bin"
+  echo "Data has been encrypted and stored securely in auth.txt"
 }
 
 # Function to securely store plaintext data
@@ -25,14 +22,11 @@ store_plaintext_data() {
   local EMAIL="$2"
   local ZONE_ID="$3"
 
-  # Store data in plaintext and save as auth.txt
+  # Store data in plaintext
   echo -e "APIKEY=$APIKEY\nEMAIL=$EMAIL\nZONE_ID=$ZONE_ID" > auth.txt
 
   # Set restrictive permissions
   chmod 600 auth.txt
-
-  # Delete auth.bin if it exists
-  [ -f auth.bin ] && rm -f auth.bin
 
   echo "Data has been stored in plaintext in auth.txt"
 }
@@ -64,6 +58,6 @@ if [[ -n "$PASSWORD1" ]]; then
   # Securely store encrypted data
   store_secure_data "$APIKEY" "$EMAIL" "$ZONE_ID" "$PASSWORD1"
 else
-  # Store data in plaintext
+  # Store data in plaintext (optional but less secure)
   store_plaintext_data "$APIKEY" "$EMAIL" "$ZONE_ID"
 fi
