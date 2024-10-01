@@ -21,13 +21,13 @@ Usage: ./auth-get.sh
 (interactive)
 ```
 
+When running `./auth-set.sh` the system will create auth.txt and prompt you for the below items. These are stored in auth.txt (and can be encrypted at store time by the script using a password, which you SHOULD do.) and loaded by the scripts (will be prompted at runtime for decryption password if needed). As zone IDs are used to make requests, you can only use the scripts on one domain at a time. To switch operating domains, switch the zone ID to the desired domain's zone ID.
+
 ```
 Your Cloudflare *Global API* key
 Your Cloudflare email
 Your Cloudflare zone ID (used to identify the domain)
 ```
-
-When running `./auth-set.sh` the system will create auth.txt and prompt you for the above items. These are stored in auth.txt (and can be encrypted at store time by the script using a password, which you **SHOULD** do.) and loaded by the scripts (will be prompted at runtime for decryption password if needed). As zone IDs are used to make requests, you can only use the scripts on one domain at a time. To switch operating domains, switch the zone ID to the desired domain's zone ID.
 
 # Dependencies
 
