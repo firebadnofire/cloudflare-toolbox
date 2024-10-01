@@ -3,20 +3,14 @@
 Cloudflare Toolbox is a collection of bash scripts for basic domain management with Cloudflare over the CLI using [cURL](https://curl.se/) to access the Cloudflare API
 
 ```
-place-A.sh - place an A record with an IPv4
-Usage: ./place-A.sh sub.your.domain 1.2.3.4
-
-place-AAAA.sh - place an AAAA record with an IPv6
-Usage: ./place-AAAA.sh sub.your.domain ::1
-
-place-CNAME.sh - place a CNAME record with a target domain
-Usage: ./place-CNAME.sh sub1.your.domain sub2.your.domain
+place.sh - place a record with a target domain
+Usage: ./place.sh sub.your.domain contents record_type [true/false]
 
 locate.sh - locate the DNS record ID of a domain
 Usage: ./locate.sh sub.your.domain
 
 remove.sh - remove a DNS record
-Usage: ./remove.sh sub.your.domain 
+Usage: ./remove.sh (sub.your.domain/ID)
 
 auth-set.sh - set authorization credentials (and optionally encrypt them with a password)
 Usage: ./auth-set.sh 

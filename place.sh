@@ -1,6 +1,22 @@
 #!/bin/bash
+usage() {
+  echo "Usage: $0 sub.your.domain contents record_type [true/false]"
+  echo
+  echo "  sub.your.domain		domain of the record"
+  echo "  contents			contents of the record"
+  echo "  record_type			record type (A, AAAA, CNAME, etc.)"
+  echo "  [true/false]			true = proxied by Cloudflare (optional, defaults to false)"
+  echo
+  echo "Options:"
+  echo "  -h, --help  Show this help message and exit"
+}
 
-#!/bin/bash
+if [ $# -lt 3 ]; then
+  usage
+  exit 1
+fi
+
+
 ### IMPORT VARS ###
 
 # Function to import variables from auth.txt (encrypted or plaintext)
@@ -48,25 +64,21 @@ import_auth_vars
 
 ### END IMPORT VARS ###
 
-
-# Check if a domain name was provided
-if [ -z "$1" ]; then
-  echo "Usage: $0 domain_name IP"
-  exit 1
-fi
-
-# Check if an IP was provided
-if [ -z "$2" ]; then
-  echo "Usage: $0 domain_name IP"
-  exit 1
-fi
-
 # DNS record details
-RECORD_TYPE="A"
+RECORD_TYPE=$3
 RECORD_NAME=$1
 RECORD_CONTENT=$2
 RECORD_TTL=1       # Auto TTL
-PROXIED=false      # Whether the record is proxied through Cloudflare
+PROXIED=${4:-"false"}      # Whether the record is proxied through Cloudflare
+
+if [ "$PROXIED" = "true" ]; then
+  PROXIED=true
+elif [ "$PROXIED" = "false" ]; then
+  PROXIED=false
+else
+  echo "Invalid value for proxy status. Please use true or false."
+  exit 1
+fi
 
 # API endpoint
 API_ENDPOINT="https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records"

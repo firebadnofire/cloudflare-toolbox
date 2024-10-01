@@ -1,6 +1,24 @@
 #!/bin/bash
 
-#!/bin/bash
+DOMAIN_NAME="$1"
+
+# Check if a domain name was provided
+if [ -z "$DOMAIN_NAME" ]; then
+  echo "Usage: $0 (domain_name/ID)"
+  exit 1
+fi
+
+read -p "Are you sure? (y/n): " answer
+
+# Check the user's input
+if [[ "$answer" =~ ^[Yy]$ ]]; then
+    echo "Proceeding..."
+else
+    echo "Aborting..."
+    exit
+fi
+
+
 ### IMPORT VARS ###
 
 # Function to import variables from auth.txt (encrypted or plaintext)
@@ -48,32 +66,37 @@ import_auth_vars
 
 ### END IMPORT VARS ###
 
-# The domain name to query (passed as the first argument to the script)
-DOMAIN_NAME="$1"
+# Function to check if input is a valid ID (32-character hex string)
+is_id() {
+    [[ $1 =~ ^[0-9a-fA-F]{32}$ ]]
+}
 
-# Check if a domain name was provided
-if [ -z "$DOMAIN_NAME" ]; then
-  echo "Usage: $0 domain_name"
-  exit 1
-fi
+if is_id "$1"; then
+        END=$(curl -s --request DELETE "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records/$1" \
+         -H "X-Auth-Email: ${EMAIL}" \
+         -H "X-Auth-Key: ${APIKEY}" \
+         -H "Content-Type: application/json")
+    echo "Success:"
+    echo "$END" | jq '.success'
+    exit
+else
+    # Make the API request to retrieve DNS records for the specified domain
+    RESPONSE=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records?name=${DOMAIN_NAME}" \
+          -H "X-Auth-Email: ${EMAIL}" \
+          -H "X-Auth-Key: ${APIKEY}" \
+          -H "Content-Type: application/json")
 
-# Make the API request to retrieve DNS records for the specified domain
-RESPONSE=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records?name=${DOMAIN_NAME}" \
-     -H "X-Auth-Email: ${EMAIL}" \
-     -H "X-Auth-Key: ${APIKEY}" \
-     -H "Content-Type: application/json")
-
-# Check if the API call was successful
-if echo "$RESPONSE" | grep -q '"success":false'; then
-  echo "Error retrieving DNS records:"
-  echo "$RESPONSE" | jq '.errors[] | {code, message}'
-  exit 1
+    # Check if the API call was successful
+    if echo "$RESPONSE" | grep -q '"success":false'; then
+       echo "Error retrieving DNS records:"
+       echo "$RESPONSE" | jq '.errors[] | {code, message}'
+    fi
 fi
 
 # Extract and display the DNS record IDs
-echo "DNS Record IDs for ${DOMAIN_NAME}:"
-ID=$(echo "$RESPONSE" | jq -r '.result[] | "\(.id)"')
-echo $ID
+       echo "DNS Record IDs for ${DOMAIN_NAME}:"
+       ID=$(echo "$RESPONSE" | jq -r '.result[] | "\(.id)"')
+       echo $ID
 
 END=$(curl -s --request DELETE "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records/$ID" \
      -H "X-Auth-Email: ${EMAIL}" \
