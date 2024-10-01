@@ -8,6 +8,7 @@ install:
 	install -m 555 cfplace /usr/local/bin
 	install -m 555 cfremove /usr/local/bin
 	install -m 555 cfsetauth /usr/local/bin
+        install -m 555 cfdelauth /usr/local/bin
 
 deinstall:
 	rm /usr/local/bin/cfgetauth
@@ -15,6 +16,7 @@ deinstall:
 	rm /usr/local/bin/cfplace
 	rm /usr/local/bin/cfremove
 	rm /usr/local/bin/cfsetauth
+        rm /usr/local/bin/cfdelauth
 
 uninstall:
         rm /usr/local/bin/cfgetauth
@@ -22,3 +24,4 @@ uninstall:
         rm /usr/local/bin/cfplace
         rm /usr/local/bin/cfremove
         rm /usr/local/bin/cfsetauth
+        rm /usr/local/bin/cfdelauth
