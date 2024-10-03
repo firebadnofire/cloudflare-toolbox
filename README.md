@@ -3,31 +3,33 @@
 Cloudflare Toolbox is a collection of bash scripts for basic domain management with Cloudflare over the CLI using [cURL](https://curl.se/) to access the Cloudflare API
 
 ```
-place.sh - place a record with a target domain
-Usage: ./place.sh sub.your.domain contents record_type [true/false]
+cfplace - place a record with a target domain
+Usage: cfplace sub.your.domain contents record_type [true/false]
 
-locate.sh - locate the DNS record ID of a domain
-Usage: ./locate.sh sub.your.domain
+cflocate - locate the DNS record ID of a domain
+Usage: cflocate sub.your.domain
 
-remove.sh - remove a DNS record
-Usage: ./remove.sh (sub.your.domain/ID)
+cflocate - remove a DNS record
+Usage: cflocate (sub.your.domain/ID)
 
-auth-set.sh - set authorization credentials (and optionally encrypt them with a password)
-Usage: ./auth-set.sh 
+cfsetauth - set authorization credentials (and optionally encrypt them with a password)
+Usage: cfsetauth 
 (interactive)
 
-auth-get.sh - (decrypt and) print the authorization into
-Usage: ./auth-get.sh 
+cfgetauth - (decrypt and) print the authorization into
+Usage: cfgetauth 
 (interactive)
 ```
 
-When running `./auth-set.sh` the system will create auth.txt and prompt you for the below items. These are stored in auth.txt (and can be encrypted at store time by the script using a password, which you SHOULD do.) and loaded by the scripts (will be prompted at runtime for decryption password if needed). As zone IDs are used to make requests, you can only use the scripts on one domain at a time. To switch operating domains, switch the zone ID to the desired domain's zone ID.
+When running `cfsetauth` the system will create auth.txt and prompt you for the below items. These are stored in auth.txt and/or auth.bin (and can be encrypted at store time by the script using a password, which you SHOULD do.) and loaded by the scripts (will be prompted at runtime for decryption password if needed). As zone IDs are used to make requests, you can only use the scripts on one domain at a time. To switch operating domains, switch the zone ID to the desired domain's zone ID.
 
 ```
 Your Cloudflare *Global API* key
 Your Cloudflare email
 Your Cloudflare zone ID (used to identify the domain)
 ```
+
+This information is stored in ~/.config/cloudflare-toolbox/ with 600 (-rw-------) permissions on the dir. You may encrypt the `auth.txt` file with a password or SSH key, where it becomes `auth.bin`.
 
 # Dependencies
 
