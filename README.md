@@ -21,7 +21,7 @@ Usage: cfgetauth
 (interactive)
 ```
 
-When running `cfsetauth` the system will create auth.txt and prompt you for the below items. These are stored in auth.txt and/or auth.bin (and can be encrypted at store time by the script using a password, which you SHOULD do.) and loaded by the scripts (will be prompted at runtime for decryption password if needed). As zone IDs are used to make requests, you can only use the scripts on one domain at a time. To switch operating domains, switch the zone ID to the desired domain's zone ID.
+When running `cfsetauth` the system will create `auth.txt` and prompt you for the below items. These are stored in auth.txt and/or auth.bin (and can be encrypted at store time by the script using a password, which you SHOULD do.) and loaded by the scripts (will be prompted at runtime for decryption password if needed). As zone IDs are used to make requests, you can only use the scripts on one domain at a time. To switch operating domains, switch the zone ID to the desired domain's zone ID.
 
 ```
 Your Cloudflare *Global API* key
@@ -30,6 +30,8 @@ Your Cloudflare zone ID (used to identify the domain)
 ```
 
 This information is stored in ~/.config/cloudflare-toolbox/ with 600 (-rw-------) permissions on the dir. You may encrypt the `auth.txt` file with a password or SSH key, where it becomes `auth.bin`.
+
+If you decide you do not need or want to encrypt the auth.txt file, you may. This is strongly discouraged, as if your concern is having to continuously type passwords you can generate a SSH key with no password. While less secure than an SSH key with a password, it's still better than no password at all.
 
 # Dependencies
 
