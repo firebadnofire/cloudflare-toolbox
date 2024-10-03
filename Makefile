@@ -1,6 +1,7 @@
 all:
 	@echo RUN \'make install\' to install the scripts
 	@echo RUN \'make uninstall\' or \'make deinstall\' to uninstall the scripts
+	@echo RUN \'make reinstall\' or \'make update\' to update after running \'git pull\'
 
 install:
 	install -m 555 cfgetauth /usr/local/bin
