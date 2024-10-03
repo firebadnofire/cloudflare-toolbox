@@ -12,46 +12,39 @@ fi
 
 ### IMPORT VARS ###
 
-CONFIG_DIR="$HOME/.config/cloudflare-tools"
+import_auth_data() {
+  CONFIG_DIR="$HOME/.config/cloudflare-tools"
 
-import_auth_vars() {
-  # Check if auth.txt or auth.bin exists
-  if [[ ! -f "$CONFIG_DIR/auth.txt" && ! -f "$CONFIG_DIR/auth.bin" ]]; then
-    echo "No auth file found!"
-    return 1
-  fi
+  # If plaintext auth.txt exists
+  if [[ -f "$CONFIG_DIR/auth.txt" ]] && [[ ! -f "$CONFIG_DIR/auth.bin" ]]; then
+    # Read variables from plaintext
+    while IFS="=" read -r key value; do
+      case "$key" in
+        APIKEY) APIKEY="$value" ;;
+        EMAIL) EMAIL="$value" ;;
+        ZONE_ID) ZONE_ID="$value" ;;
+      esac
+    done < "$CONFIG_DIR/auth.txt"
 
-  # Detect whether the file is encrypted (auth.bin) or plaintext (auth.txt)
-  if [[ -f "$CONFIG_DIR/auth.bin" ]]; then
-    # File is encrypted, prompt for password
-    echo "The file appears to be encrypted."
-    read -s -p "Enter password to decrypt: " PASSWORD
-    echo
-
-    # Attempt to decrypt and source variables
-    decrypted_data=$(openssl enc -aes-256-cbc -d -pbkdf2 -in "$CONFIG_DIR/auth.bin" -k "$PASSWORD" 2>/dev/null)
-
-    if [[ $? -ne 0 ]]; then
-      echo "Failed to decrypt the file. Incorrect password or file corrupted."
-      return 1
+  # If encrypted auth.bin exists (password or SSH key)
+  elif [[ -f "$CONFIG_DIR/auth.bin" ]]; then
+    if [[ -f "$CONFIG_DIR/auth.txt" ]]; then
+# SSH key decryption
+      PRIVKEY_PATH="$HOME/.ssh/id_rsa"
+      decrypted_data=$(openssl pkeyutl -decrypt -inkey "$PRIVKEY_PATH" -in "$CONFIG_DIR/auth.bin" 2>/dev/null)
+    else
+      # Password decryption
+      read -s -p "Enter password: " PASSWORD
+      decrypted_data=$(openssl enc -aes-256-cbc -d -pbkdf2 -in "$CONFIG_DIR/auth.bin" -k "$PASSWORD" 2>/dev/null)
     fi
-
-    # Read the decrypted data into the current environment
-    eval "$decrypted_data"
-  elif [[ -f "$CONFIG_DIR/auth.txt" ]]; then
-    # File is in plaintext, source it directly
-    source "$CONFIG_DIR/auth.txt"
-  fi
-
-  # Verify the variables have been imported
-  if [[ -z "$APIKEY" || -z "$EMAIL" || -z "$ZONE_ID" ]]; then
-    echo "Failed to import variables from the auth file"
-    return 1
+eval "$decrypted_data"
+  else
+    echo "No valid auth file found."
+    exit 1
   fi
 }
 
-# Import auth file
-import_auth_vars
+import_auth_data
 
 ### END IMPORT VARS ###
 

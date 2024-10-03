@@ -3,7 +3,7 @@
 # Directory for storing auth files
 CONFIG_DIR="$HOME/.config/cloudflare-tools"
 
-# Function to decrypt the data securely
+# Function to decrypt data encrypted with password
 decrypt_secure_data() {
   local PASSWORD="$1"
 
@@ -15,17 +15,53 @@ decrypt_secure_data() {
     exit 1
   fi
 
-  echo "$decrypted_data"
+  # Replace "=" with " "
+  echo "$decrypted_data" | sed 's/=/ /g'
 }
 
-# Check if the auth file exists
-if [[ -f "$CONFIG_DIR/auth.txt" ]]; then
+# Function to decrypt data encrypted with SSH key
+decrypt_sshkey_data() {
+  # Default private key path
+  PRIVKEY_PATH="$HOME/.ssh/id_rsa"
+
+  # Check if the private key exists
+  if [ ! -f "$PRIVKEY_PATH" ]; then
+    echo "RSA private key not found at $PRIVKEY_PATH"
+    read -p "Enter the path to your RSA private key: " PRIVKEY_PATH
+    if [ ! -f "$PRIVKEY_PATH" ]; then
+      echo "Private key not found. Exiting."
+      exit 1
+    fi
+  fi
+
+  # Decrypt the data
+  decrypted_data=$(openssl pkeyutl -decrypt -inkey "$PRIVKEY_PATH" -in "$CONFIG_DIR/auth.bin" 2>/dev/null)
+
+  if [[ $? -ne 0 ]]; then
+    echo "Failed to decrypt the file. Incorrect private key, private key password, or file corrupted."
+    exit 1
+  fi
+
+  # Replace "=" with " "
+  echo "$decrypted_data" | sed 's/=/ /g'
+}
+
+# Check if the auth files exist
+if [[ -f "$CONFIG_DIR/auth.txt" ]] && [[ -f "$CONFIG_DIR/auth.bin" ]]; then
+  # Files are encrypted with SSH key
+  echo "The file appears to be encrypted with your SSH key."
+
+  # Decrypt the data
+  decrypt_sshkey_data
+
+elif [[ -f "$CONFIG_DIR/auth.txt" ]]; then
   # File is plaintext, print contents securely
   echo "The file is in plaintext. Contents:"
-  cat "$CONFIG_DIR/auth.txt"
+  cat "$CONFIG_DIR/auth.txt" | sed 's/=/ /g'
+
 elif [[ -f "$CONFIG_DIR/auth.bin" ]]; then
-  # File is encrypted, prompt for password
-  echo "The file appears to be encrypted."
+  # File is encrypted with password, prompt for password
+  echo "The file appears to be encrypted with a password."
   read -s -p "Enter password to decrypt: " PASSWORD
   echo
 

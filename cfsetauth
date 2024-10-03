@@ -6,7 +6,7 @@ CONFIG_DIR="$HOME/.config/cloudflare-tools"
 # Create directory if it doesn't exist
 mkdir -p "$CONFIG_DIR"
 
-# Function to securely store data with encryption
+# Function to securely store data with password encryption
 store_secure_data() {
   local APIKEY="$1"
   local EMAIL="$2"
@@ -43,33 +43,103 @@ store_plaintext_data() {
   echo "Data has been stored in plaintext in $CONFIG_DIR/auth.txt"
 }
 
+# Function to securely store data encrypted with SSH key
+store_sshkey_data() {
+  local APIKEY="$1"
+  local EMAIL="$2"
+  local ZONE_ID="$3"
+
+  # Default public key path
+  PUBKEY_PATH="$HOME/.ssh/id_rsa.pub"
+
+  # Check if the default public key exists
+  if [ ! -f "$PUBKEY_PATH" ]; then
+    echo "RSA public key not found at $PUBKEY_PATH"
+    read -p "Enter the path to your RSA public key: " PUBKEY_PATH
+    if [ ! -f "$PUBKEY_PATH" ]; then
+      echo "Public key not found. Exiting."
+      exit 1
+    fi
+  fi
+
+  # Convert the public key to PEM format
+  PUBKEY_PEM="$CONFIG_DIR/pubkey.pem"
+  ssh-keygen -e -m PEM -f "$PUBKEY_PATH" > "$PUBKEY_PEM"
+
+  if [ $? -ne 0 ]; then
+    echo "Failed to convert public key to PEM format."
+    exit 1
+  fi
+
+  # Encrypt data with public key
+  echo -e "APIKEY=$APIKEY\nEMAIL=$EMAIL\nZONE_ID=$ZONE_ID" > "$CONFIG_DIR/auth_temp.txt"
+
+  openssl pkeyutl -encrypt -inkey "$PUBKEY_PEM" -pubin -in "$CONFIG_DIR/auth_temp.txt" -out "$CONFIG_DIR/auth.bin"
+
+  if [ $? -ne 0 ]; then
+    echo "Failed to encrypt data with public key."
+    rm -f "$CONFIG_DIR/auth_temp.txt" "$PUBKEY_PEM"
+    exit 1
+  fi
+
+  # Remove temporary files
+  rm -f "$CONFIG_DIR/auth_temp.txt" "$PUBKEY_PEM"
+
+  # Save the public key info in auth.txt
+  cp "$PUBKEY_PATH" "$CONFIG_DIR/auth.txt"
+
+  # Set restrictive permissions
+  chmod 600 "$CONFIG_DIR/auth.bin" "$CONFIG_DIR/auth.txt"
+
+  echo "Data has been encrypted with your SSH public key and stored securely in $CONFIG_DIR/auth.bin"
+}
+
 # Prompt for user input
 read -p "Enter your Cloudflare API Global Key: " APIKEY
 read -p "Enter your Cloudflare email: " EMAIL
 read -p "Enter your Cloudflare Zone ID: " ZONE_ID
 
-# Prompt for password (optional)
-echo "You may enter a password to encrypt the data (leave blank for plaintext):"
-read -s PASSWORD1
+# Prompt for encryption method
+echo "Choose an encryption method:"
+echo "1) Store in plaintext"
+echo "2) Encrypt with password"
+echo "3) Encrypt with SSH key"
+read -p "Enter your choice (1, 2, or 3): " ENCRYPTION_CHOICE
 
-if [[ -n "$PASSWORD1" ]]; then
-  echo "Re-enter password to confirm:"
-  read -s PASSWORD2
+case "$ENCRYPTION_CHOICE" in
+  1)
+    # Store data in plaintext
+    store_plaintext_data "$APIKEY" "$EMAIL" "$ZONE_ID"
+    ;;
+  2)
+    # Prompt for password
+    echo "You may enter a password to encrypt the data:"
+    read -s -p "Enter password: " PASSWORD1
+    echo
+    echo "Re-enter password to confirm:"
+    read -s -p "Enter password: " PASSWORD2
+    echo
 
-  if [[ "$PASSWORD1" != "$PASSWORD2" ]]; then
-    echo "Passwords do not match. Exiting for security reasons."
+    if [[ "$PASSWORD1" != "$PASSWORD2" ]]; then
+      echo "Passwords do not match. Exiting for security reasons."
+      exit 1
+    fi
+
+    # Check for minimum password length
+    if [[ ${#PASSWORD1} -lt 8 ]]; then
+      echo "Password is too short (minimum 8 characters). Exiting."
+      exit 1
+    fi
+
+    # Securely store encrypted data
+    store_secure_data "$APIKEY" "$EMAIL" "$ZONE_ID" "$PASSWORD1"
+    ;;
+  3)
+    # Securely store data encrypted with SSH key
+    store_sshkey_data "$APIKEY" "$EMAIL" "$ZONE_ID"
+    ;;
+  *)
+    echo "Invalid choice. Exiting."
     exit 1
-  fi
-
-  # Check for minimum password length
-  if [[ ${#PASSWORD1} -lt 8 ]]; then
-    echo "Password is too short (minimum 8 characters). Exiting."
-    exit 1
-  fi
-
-  # Securely store encrypted data
-  store_secure_data "$APIKEY" "$EMAIL" "$ZONE_ID" "$PASSWORD1"
-else
-  # Store data in plaintext
-  store_plaintext_data "$APIKEY" "$EMAIL" "$ZONE_ID"
-fi
+    ;;
+esac
