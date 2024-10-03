@@ -11,3 +11,6 @@ else
 fi
 
 rm -rv $CONFIG_DIR
+unset $APIKEY
+unset $EMAIL
+unset $ZONE_ID

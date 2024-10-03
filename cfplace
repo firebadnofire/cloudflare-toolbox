@@ -94,3 +94,6 @@ END=$(curl -X POST "$API_ENDPOINT" \
 echo "Success:"
 echo "$END" | jq '.success'
 
+unset $APIKEY
+unset $EMAIL
+unset $ZONE_ID

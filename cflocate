@@ -73,3 +73,6 @@ fi
 # Extract and display the DNS record IDs
 echo "DNS Record IDs for ${DOMAIN_NAME}:"
 echo "$RESPONSE" | jq -r '.result[] | "\(.id) - \(.name) (\(.type)) -> \(.content)"'
+unset $APIKEY
+unset $EMAIL
+unset $ZONE_ID

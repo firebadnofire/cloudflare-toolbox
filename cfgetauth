@@ -75,3 +75,6 @@ fi
 # Set restrictive permissions
 chmod 600 "$CONFIG_DIR/auth.txt" 2>/dev/null
 chmod 600 "$CONFIG_DIR/auth.bin" 2>/dev/null
+unset $APIKEY
+unset $EMAIL
+unset $ZONE_ID

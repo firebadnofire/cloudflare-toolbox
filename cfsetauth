@@ -143,3 +143,6 @@ case "$ENCRYPTION_CHOICE" in
     exit 1
     ;;
 esac
+unset $APIKEY
+unset $EMAIL
+unset $ZONE_ID

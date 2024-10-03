@@ -64,3 +64,7 @@ git clone https://codeberg.org/firebadnofire/cloudflare-toolbox
 pkg bash curl openssl jq
 git clone https://codeberg.org/firebadnofire/cloudflare-toolbox
 ```
+
+# Why SSH keys and not PGP keys?
+
+Simply put, PGP is old, clunky, and complex. SSH keys are simpler and nearly server owner (and developer since Git uses them) has one already. [This aricle](https://www.agwa.name/blog/post/ssh_signatures) helps summarize some issues.

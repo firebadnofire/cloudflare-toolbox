@@ -96,3 +96,6 @@ END=$(curl -s --request DELETE "https://api.cloudflare.com/client/v4/zones/${ZON
 echo "Success:"
 echo "$END" | jq '.success'
 
+unset $APIKEY
+unset $EMAIL
+unset $ZONE_ID
