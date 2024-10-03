@@ -1,4 +1,62 @@
 #!/bin/bash
+
+#add color
+RED='\033[0;31m'
+NC='\033[0m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+#check version
+current="version=1.0"
+
+echo "Checking version using codeberg:"
+latest=$(curl --connect-timeout 5 -s https://codeberg.org/firebadnofire/cloudflare-toolbox/raw/branch/main/version.txt | sed -n -e 3p)
+
+#compare version
+bypass=false
+
+# Check for the -b or --bypass flag
+for arg in "$@"; do
+  if [[ "$arg" == "-b" || "$arg" == "--bypass" ]]; then
+    bypass=true
+  fi
+done
+
+if [[ "$latest" == curl:* ]]; then
+  echo -e "${YELLOW}Couldn't connect to Codeberg to check for updates.${NC} Continuing anyway..."
+elif [[ "$latest" == "$current" ]]; then
+  echo -e "${GREEN}You are up to date!${NC}"
+else
+  echo -e "${RED}Your software is out of date!${NC} Pull the latest repo to update!"
+  echo -e "Tip: You may bypass this by invoking -b or --bypass"
+
+  # If the bypass flag isn't set, exit the script
+  if [[ "$bypass" != true ]]; then
+    exit
+  else
+    echo "Bypassing the update check."
+  fi
+fi
+
+#check for dependancies
+if ! command -v curl &> /dev/null
+then
+    echo "curl could not be found"
+sleep 1
+        exit
+fi
+if ! command -v openssl &> /dev/null
+then
+    echo "openssl could not be found"
+sleep 1
+        exit
+fi
+if ! command -v jq &> /dev/null
+then
+    echo "jq could not be found"
+sleep 1
+        exit
+fi
+
 usage() {
   echo "Usage: $0 sub.your.domain"
   echo
