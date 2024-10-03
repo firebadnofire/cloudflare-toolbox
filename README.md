@@ -16,7 +16,7 @@ cfsetauth - set authorization credentials (and optionally encrypt them with a pa
 Usage: cfsetauth 
 (interactive)
 
-cfgetauth - (decrypt and) print the authorization into
+cfgetauth - (decrypt and) print the authorization info
 Usage: cfgetauth 
 (interactive)
 ```
