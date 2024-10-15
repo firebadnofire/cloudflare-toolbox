@@ -38,27 +38,53 @@ else
 fi
 
 #check for dependencies
-if ! command -v curl &> /dev/null
-then
+if ! command -v curl &> /dev/null; then
     echo "curl could not be found"
     sleep 1
     exit
 fi
-if ! command -v openssl &> /dev/null
-then
+if ! command -v openssl &> /dev/null; then
     echo "openssl could not be found"
     sleep 1
     exit
 fi
-if ! command -v jq &> /dev/null
-then
+if ! command -v jq &> /dev/null; then
     echo "jq could not be found"
+    sleep 1
+    exit
+fi
+if ! command -v gpg &> /dev/null; then
+    echo "gpg could not be found"
     sleep 1
     exit
 fi
 
 # Directory for storing auth files
 CONFIG_DIR="$HOME/.config/cloudflare-tools"
+
+# Function to decrypt GPG-encrypted data
+decrypt_gpg_data() {
+  local GPG_KEY_ID
+
+  # Get the GPG Key ID from auth.txt
+  GPG_KEY_ID=$(grep 'GPG_KEY_ID=' "$CONFIG_DIR/auth.txt" | cut -d'=' -f2)
+
+  if [[ -z "$GPG_KEY_ID" ]]; then
+    echo "No GPG Key ID found in auth.txt. Exiting."
+    exit 1
+  fi
+
+  # Attempt to decrypt the file with GPG
+  decrypted_data=$(gpg --decrypt "$CONFIG_DIR/auth.gpg.bin" 2>/dev/null)
+
+  if [[ $? -ne 0 ]]; then
+    echo "Failed to decrypt the file with GPG. Incorrect key or file corrupted."
+    exit 1
+  fi
+
+  # Replace "=" with " " and print the decrypted data
+  echo "$decrypted_data" | sed 's/=/ /g'
+}
 
 # Function to decrypt data encrypted with password
 decrypt_secure_data() {
@@ -76,19 +102,25 @@ decrypt_secure_data() {
   echo "$decrypted_data" | sed 's/=/ /g'
 }
 
-# Check if the auth files exist
-if [[ -f "$CONFIG_DIR/auth.txt" ]]; then
-  # File is plaintext, print contents securely
+# Check if the auth.gpg.bin file exists for GPG encryption
+if [[ -f "$CONFIG_DIR/auth.gpg.bin" ]]; then
+  echo "The file appears to be encrypted with GPG."
+
+  # Decrypt the data using GPG
+  decrypt_gpg_data
+
+# Check if the auth.txt file exists for plaintext
+elif [[ -f "$CONFIG_DIR/auth.txt" ]]; then
   echo "The file is in plaintext. Contents:"
   cat "$CONFIG_DIR/auth.txt" | sed 's/=/ /g'
 
+# Check if the auth.bin file exists for password encryption
 elif [[ -f "$CONFIG_DIR/auth.bin" ]]; then
-  # File is encrypted with password, prompt for password
   echo "The file appears to be encrypted with a password."
   read -s -p "Enter password to decrypt: " PASSWORD
   echo
 
-  # Decrypt the data
+  # Decrypt the data using password encryption
   decrypt_secure_data "$PASSWORD"
 else
   echo "No auth file found!"
@@ -98,6 +130,7 @@ fi
 # Set restrictive permissions
 chmod 600 "$CONFIG_DIR/auth.txt" 2>/dev/null
 chmod 600 "$CONFIG_DIR/auth.bin" 2>/dev/null
+chmod 600 "$CONFIG_DIR/auth.gpg.bin" 2>/dev/null
 unset $APIKEY
 unset $EMAIL
 unset $ZONE_ID

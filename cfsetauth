@@ -38,21 +38,23 @@ else
 fi
 
 #check for dependencies
-if ! command -v curl &> /dev/null
-then
+if ! command -v curl &> /dev/null; then
     echo "curl could not be found"
     sleep 1
     exit
 fi
-if ! command -v openssl &> /dev/null
-then
+if ! command -v openssl &> /dev/null; then
     echo "openssl could not be found"
     sleep 1
     exit
 fi
-if ! command -v jq &> /dev/null
-then
+if ! command -v jq &> /dev/null; then
     echo "jq could not be found"
+    sleep 1
+    exit
+fi
+if ! command -v gpg &> /dev/null; then
+    echo "gpg could not be found"
     sleep 1
     exit
 fi
@@ -63,41 +65,71 @@ CONFIG_DIR="$HOME/.config/cloudflare-tools"
 # Create directory if it doesn't exist
 mkdir -p "$CONFIG_DIR"
 
-# Function to securely store data with password encryption
-store_secure_data() {
+# Function to securely store data with GPG encryption
+store_gpg_data() {
   local APIKEY="$1"
   local EMAIL="$2"
   local ZONE_ID="$3"
-  local PASSWORD="$4"
+  local GPG_KEY_ID="$4"
 
-  # Encrypt data with PBKDF2 and save as auth.bin
-  echo -e "APIKEY=$APIKEY\nEMAIL=$EMAIL\nZONE_ID=$ZONE_ID" | openssl enc -aes-256-cbc -salt -pbkdf2 -k "$PASSWORD" -out "$CONFIG_DIR/auth.bin"
+  # Encrypt data with GPG and save as auth.gpg.bin
+  echo -e "APIKEY=$APIKEY\nEMAIL=$EMAIL\nZONE_ID=$ZONE_ID" | gpg --encrypt --recipient "$GPG_KEY_ID" --output "$CONFIG_DIR/auth.gpg.bin"
 
-  # Set restrictive permissions
-  chmod 600 "$CONFIG_DIR/auth.bin"
-
-  # Delete auth.txt if it exists
-  [ -f "$CONFIG_DIR/auth.txt" ] && rm -f "$CONFIG_DIR/auth.txt"
-
-  echo "Data has been encrypted and stored securely in $CONFIG_DIR/auth.bin"
-}
-
-# Function to securely store plaintext data
-store_plaintext_data() {
-  local APIKEY="$1"
-  local EMAIL="$2"
-  local ZONE_ID="$3"
-
-  # Store data in plaintext and save as auth.txt
-  echo -e "APIKEY=$APIKEY\nEMAIL=$EMAIL\nZONE_ID=$ZONE_ID" > "$CONFIG_DIR/auth.txt"
+  # Save the GPG key ID to auth.txt
+  echo "GPG_KEY_ID=$GPG_KEY_ID" > "$CONFIG_DIR/auth.txt"
 
   # Set restrictive permissions
+  chmod 600 "$CONFIG_DIR/auth.gpg.bin"
   chmod 600 "$CONFIG_DIR/auth.txt"
 
-  # Delete auth.bin if it exists
+  # Delete auth.bin or auth.txt if they exist
   [ -f "$CONFIG_DIR/auth.bin" ] && rm -f "$CONFIG_DIR/auth.bin"
+  [ -f "$CONFIG_DIR/auth.txt" ] && rm -f "$CONFIG_DIR/auth.txt"
 
-  echo "Data has been stored in plaintext in $CONFIG_DIR/auth.txt"
+  echo "Data has been encrypted with GPG and stored securely in $CONFIG_DIR/auth.gpg.bin"
+}
+
+# Function to generate a new GPG key
+generate_gpg_key() {
+  local EMAIL="cloudflare-toolbox@localhost"
+  local PASSWORD="$1"
+
+  # Generate GPG key with high-security flags
+  echo -e "Key-Type: 1\nKey-Length: 4096\nSubkey-Type: 1\nSubkey-Length: 4096\nName-Real: Cloudflare Toolbox\nName-Email: $EMAIL\nExpire-Date: 0\nPassphrase: $PASSWORD" | gpg --batch --gen-key
+
+  # Fetch the generated key ID
+  GPG_KEY_ID=$(gpg --list-keys --with-colons "$EMAIL" | grep "^pub" | cut -d':' -f5)
+
+  echo "$GPG_KEY_ID"
+}
+
+# Function to store GPG-encrypted data using an existing or new GPG key
+store_with_gpg() {
+  read -p "Do you want to use an existing GPG key or generate a new one? (existing/new): " GPG_CHOICE
+  case "$GPG_CHOICE" in
+    existing)
+      echo "You can find your GPG key ID by running 'gpg --list-keys'"
+      read -p "Enter your GPG key ID: " GPG_KEY_ID
+      if ! gpg --list-keys "$GPG_KEY_ID" &> /dev/null; then
+        echo "Invalid GPG key ID. Exiting."
+        exit 1
+      fi
+      ;;
+    new)
+      read -s -p "Enter password for new GPG key (leave blank for no password): " PASSWORD1
+      echo
+      if [[ -n "$PASSWORD1" ]]; then
+        GPG_KEY_ID=$(generate_gpg_key "$PASSWORD1")
+      else
+        GPG_KEY_ID=$(generate_gpg_key "")
+      fi
+      ;;
+    *)
+      echo "Invalid choice. Exiting."
+      exit 1
+      ;;
+  esac
+  store_gpg_data "$APIKEY" "$EMAIL" "$ZONE_ID" "$GPG_KEY_ID"
 }
 
 # Prompt for user input
@@ -109,7 +141,8 @@ read -p "Enter your Cloudflare Zone ID: " ZONE_ID
 echo "Choose an encryption method:"
 echo "1) Store in plaintext"
 echo "2) Encrypt with password"
-read -p "Enter your choice (1 or 2): " ENCRYPTION_CHOICE
+echo "3) Encrypt with GPG"
+read -p "Enter your choice (1, 2, or 3): " ENCRYPTION_CHOICE
 
 case "$ENCRYPTION_CHOICE" in
   1)
@@ -138,6 +171,9 @@ case "$ENCRYPTION_CHOICE" in
 
     # Securely store encrypted data
     store_secure_data "$APIKEY" "$EMAIL" "$ZONE_ID" "$PASSWORD1"
+    ;;
+  3)
+    store_with_gpg
     ;;
   *)
     echo "Invalid choice. Exiting."
