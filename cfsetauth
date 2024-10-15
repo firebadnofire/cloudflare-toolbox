@@ -37,24 +37,24 @@ else
   fi
 fi
 
-#check for dependancies
+#check for dependencies
 if ! command -v curl &> /dev/null
 then
     echo "curl could not be found"
-sleep 1
-        exit
+    sleep 1
+    exit
 fi
 if ! command -v openssl &> /dev/null
 then
     echo "openssl could not be found"
-sleep 1
-        exit
+    sleep 1
+    exit
 fi
 if ! command -v jq &> /dev/null
 then
     echo "jq could not be found"
-sleep 1
-        exit
+    sleep 1
+    exit
 fi
 
 # Directory for storing auth files
@@ -100,57 +100,6 @@ store_plaintext_data() {
   echo "Data has been stored in plaintext in $CONFIG_DIR/auth.txt"
 }
 
-# Function to securely store data encrypted with SSH key
-store_sshkey_data() {
-  local APIKEY="$1"
-  local EMAIL="$2"
-  local ZONE_ID="$3"
-
-  # Default public key path
-  PUBKEY_PATH="$HOME/.ssh/id_rsa.pub"
-
-  # Check if the default public key exists
-  if [ ! -f "$PUBKEY_PATH" ]; then
-    echo "RSA public key not found at $PUBKEY_PATH"
-    read -p "Enter the path to your RSA public key: " PUBKEY_PATH
-    if [ ! -f "$PUBKEY_PATH" ]; then
-      echo "Public key not found. Exiting."
-      exit 1
-    fi
-  fi
-
-  # Convert the public key to PEM format
-  PUBKEY_PEM="$CONFIG_DIR/pubkey.pem"
-  ssh-keygen -e -m PEM -f "$PUBKEY_PATH" > "$PUBKEY_PEM"
-
-  if [ $? -ne 0 ]; then
-    echo "Failed to convert public key to PEM format."
-    exit 1
-  fi
-
-  # Encrypt data with public key
-  echo -e "APIKEY=$APIKEY\nEMAIL=$EMAIL\nZONE_ID=$ZONE_ID" > "$CONFIG_DIR/auth_temp.txt"
-
-  openssl pkeyutl -encrypt -inkey "$PUBKEY_PEM" -pubin -in "$CONFIG_DIR/auth_temp.txt" -out "$CONFIG_DIR/auth.bin"
-
-  if [ $? -ne 0 ]; then
-    echo "Failed to encrypt data with public key."
-    rm -f "$CONFIG_DIR/auth_temp.txt" "$PUBKEY_PEM"
-    exit 1
-  fi
-
-  # Remove temporary files
-  rm -f "$CONFIG_DIR/auth_temp.txt" "$PUBKEY_PEM"
-
-  # Save the public key info in auth.txt
-  cp "$PUBKEY_PATH" "$CONFIG_DIR/auth.txt"
-
-  # Set restrictive permissions
-  chmod 600 "$CONFIG_DIR/auth.bin" "$CONFIG_DIR/auth.txt"
-
-  echo "Data has been encrypted with your SSH public key and stored securely in $CONFIG_DIR/auth.bin"
-}
-
 # Prompt for user input
 read -p "Enter your Cloudflare API Global Key: " APIKEY
 read -p "Enter your Cloudflare email: " EMAIL
@@ -160,8 +109,7 @@ read -p "Enter your Cloudflare Zone ID: " ZONE_ID
 echo "Choose an encryption method:"
 echo "1) Store in plaintext"
 echo "2) Encrypt with password"
-echo "3) Encrypt with SSH key"
-read -p "Enter your choice (1, 2, or 3): " ENCRYPTION_CHOICE
+read -p "Enter your choice (1 or 2): " ENCRYPTION_CHOICE
 
 case "$ENCRYPTION_CHOICE" in
   1)
@@ -191,10 +139,6 @@ case "$ENCRYPTION_CHOICE" in
     # Securely store encrypted data
     store_secure_data "$APIKEY" "$EMAIL" "$ZONE_ID" "$PASSWORD1"
     ;;
-  3)
-    # Securely store data encrypted with SSH key
-    store_sshkey_data "$APIKEY" "$EMAIL" "$ZONE_ID"
-    ;;
   *)
     echo "Invalid choice. Exiting."
     exit 1
@@ -203,3 +147,4 @@ esac
 unset $APIKEY
 unset $EMAIL
 unset $ZONE_ID
+

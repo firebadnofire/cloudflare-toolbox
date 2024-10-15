@@ -37,24 +37,24 @@ else
   fi
 fi
 
-#check for dependancies
+#check for dependencies
 if ! command -v curl &> /dev/null
 then
     echo "curl could not be found"
-sleep 1
-        exit
+    sleep 1
+    exit
 fi
 if ! command -v openssl &> /dev/null
 then
     echo "openssl could not be found"
-sleep 1
-        exit
+    sleep 1
+    exit
 fi
 if ! command -v jq &> /dev/null
 then
     echo "jq could not be found"
-sleep 1
-        exit
+    sleep 1
+    exit
 fi
 
 # Directory for storing auth files
@@ -76,42 +76,8 @@ decrypt_secure_data() {
   echo "$decrypted_data" | sed 's/=/ /g'
 }
 
-# Function to decrypt data encrypted with SSH key
-decrypt_sshkey_data() {
-  # Default private key path
-  PRIVKEY_PATH="$HOME/.ssh/id_rsa"
-
-  # Check if the private key exists
-  if [ ! -f "$PRIVKEY_PATH" ]; then
-    echo "RSA private key not found at $PRIVKEY_PATH"
-    read -p "Enter the path to your RSA private key: " PRIVKEY_PATH
-    if [ ! -f "$PRIVKEY_PATH" ]; then
-      echo "Private key not found. Exiting."
-      exit 1
-    fi
-  fi
-
-  # Decrypt the data
-  decrypted_data=$(openssl pkeyutl -decrypt -inkey "$PRIVKEY_PATH" -in "$CONFIG_DIR/auth.bin" 2>/dev/null)
-
-  if [[ $? -ne 0 ]]; then
-    echo "Failed to decrypt the file. Incorrect private key, private key password, or file corrupted."
-    exit 1
-  fi
-
-  # Replace "=" with " "
-  echo "$decrypted_data" | sed 's/=/ /g'
-}
-
 # Check if the auth files exist
-if [[ -f "$CONFIG_DIR/auth.txt" ]] && [[ -f "$CONFIG_DIR/auth.bin" ]]; then
-  # Files are encrypted with SSH key
-  echo "The file appears to be encrypted with your SSH key."
-
-  # Decrypt the data
-  decrypt_sshkey_data
-
-elif [[ -f "$CONFIG_DIR/auth.txt" ]]; then
+if [[ -f "$CONFIG_DIR/auth.txt" ]]; then
   # File is plaintext, print contents securely
   echo "The file is in plaintext. Contents:"
   cat "$CONFIG_DIR/auth.txt" | sed 's/=/ /g'
@@ -135,3 +101,4 @@ chmod 600 "$CONFIG_DIR/auth.bin" 2>/dev/null
 unset $APIKEY
 unset $EMAIL
 unset $ZONE_ID
+
