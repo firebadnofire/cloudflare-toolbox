@@ -1,17 +1,18 @@
 #!/bin/bash
 
-#add color
+# Add color
 RED='\033[0;31m'
 NC='\033[0m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
-#check version
+
+# Check version
 current="version=1.0"
 
 echo "Checking version using codeberg:"
 latest=$(curl --connect-timeout 5 -s https://codeberg.org/firebadnofire/cloudflare-toolbox/raw/branch/main/version.txt | sed -n -e 3p)
 
-#compare version
+# Compare version
 bypass=false
 
 # Check for the -b or --bypass flag
@@ -37,7 +38,7 @@ else
   fi
 fi
 
-#check for dependencies
+# Check for dependencies
 if ! command -v curl &> /dev/null; then
     echo "curl could not be found"
     sleep 1
@@ -62,26 +63,37 @@ fi
 # Directory for storing auth files
 CONFIG_DIR="$HOME/.config/cloudflare-tools"
 
-# Function to decrypt GPG-encrypted data
+# Function to decrypt GPG-encrypted data, supports password-protected GPG keys
 decrypt_gpg_data() {
-  local GPG_KEY_ID
-
-  # Get the GPG Key ID from auth.txt
-  GPG_KEY_ID=$(grep 'GPG_KEY_ID=' "$CONFIG_DIR/auth.txt" | cut -d'=' -f2)
-
-  if [[ -z "$GPG_KEY_ID" ]]; then
-    echo "No GPG Key ID found in auth.txt. Exiting."
+  echo -e "${YELLOW}Attempting to decrypt GPG-encrypted file...${NC}"
+  
+  # Check if the file exists and is readable
+  if [[ ! -f "$CONFIG_DIR/auth.gpg.bin" ]]; then
+    echo -e "${RED}auth.gpg.bin not found in $CONFIG_DIR!${NC}"
     exit 1
   fi
 
-  # Attempt to decrypt the file with GPG
-  decrypted_data=$(gpg --decrypt "$CONFIG_DIR/auth.gpg.bin" 2>/dev/null)
+  if [[ ! -r "$CONFIG_DIR/auth.gpg.bin" ]]; then
+    echo -e "${RED}auth.gpg.bin is not readable! Check permissions.${NC}"
+    exit 1
+  fi
+  
+  echo -e "${YELLOW}GPG file found. Attempting decryption...${NC}"
 
+  # Attempt to decrypt the file with GPG and capture the output and errors
+  decrypted_data=$(gpg --decrypt "$CONFIG_DIR/auth.gpg.bin" 2> /tmp/gpg_error_log)
+
+  # Check the return code of GPG decryption
   if [[ $? -ne 0 ]]; then
-    echo "Failed to decrypt the file with GPG. Incorrect key or file corrupted."
+    echo -e "${RED}Failed to decrypt the file with GPG.${NC}"
+    echo -e "${YELLOW}GPG error details:${NC}"
+    cat /tmp/gpg_error_log
+    echo -e "${YELLOW}Ensure that you are entering the correct passphrase if prompted.${NC}"
     exit 1
   fi
 
+  echo -e "${GREEN}Decryption successful.${NC}"
+  
   # Replace "=" with " " and print the decrypted data
   echo "$decrypted_data" | sed 's/=/ /g'
 }
@@ -94,7 +106,7 @@ decrypt_secure_data() {
   decrypted_data=$(openssl enc -aes-256-cbc -d -pbkdf2 -in "$CONFIG_DIR/auth.bin" -k "$PASSWORD" 2>/dev/null)
 
   if [[ $? -ne 0 ]]; then
-    echo "Failed to decrypt the file. Incorrect password or file corrupted."
+    echo -e "${RED}Failed to decrypt the file. Incorrect password or file corrupted.${NC}"
     exit 1
   fi
 
@@ -123,7 +135,7 @@ elif [[ -f "$CONFIG_DIR/auth.bin" ]]; then
   # Decrypt the data using password encryption
   decrypt_secure_data "$PASSWORD"
 else
-  echo "No auth file found!"
+  echo -e "${RED}No auth file found!${NC}"
   exit 1
 fi
 
@@ -131,6 +143,7 @@ fi
 chmod 600 "$CONFIG_DIR/auth.txt" 2>/dev/null
 chmod 600 "$CONFIG_DIR/auth.bin" 2>/dev/null
 chmod 600 "$CONFIG_DIR/auth.gpg.bin" 2>/dev/null
+
 unset $APIKEY
 unset $EMAIL
 unset $ZONE_ID

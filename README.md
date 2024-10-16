@@ -29,9 +29,9 @@ Your Cloudflare email
 Your Cloudflare zone ID (used to identify the domain)
 ```
 
-This information is stored in ~/.config/cloudflare-toolbox/ with 600 (-rw-------) permissions on the dir. You may encrypt the `auth.txt` file with a password or SSH key, where it becomes `auth.bin`.
+This information is stored in ~/.config/cloudflare-toolbox/ with 600 (-rw-------) permissions on the dir. You may encrypt the `auth.txt` file with a password or GPG key, where it becomes `auth.bin`.
 
-If you decide you do not need or want to encrypt the auth.txt file, you may. This is strongly discouraged, as if your concern is having to continuously type passwords you can generate a SSH key with no password. While less secure than an SSH key with a password, it's still better than no password at all.
+If you decide you do not need or want to encrypt the auth.txt file, you may. This is strongly discouraged, as if your concern is having to continuously type passwords you can generate a GPG key with no password. While less secure than an GPG key with a password, it's still better than no password at all.
 
 # Dependencies
 
@@ -65,6 +65,3 @@ pkg bash curl openssl jq
 git clone https://codeberg.org/firebadnofire/cloudflare-toolbox
 ```
 
-# Why SSH keys and not PGP keys?
-
-Simply put, PGP is old, clunky, and complex. SSH keys are simpler and nearly server owner (and developer since Git uses them) has one already. [This aricle](https://www.agwa.name/blog/post/ssh_signatures) helps summarize some issues.

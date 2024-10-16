@@ -1,17 +1,18 @@
 #!/bin/bash
 
-#add color
+# Add color
 RED='\033[0;31m'
 NC='\033[0m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
-#check version
+
+# Check version
 current="version=1.0"
 
 echo "Checking version using codeberg:"
 latest=$(curl --connect-timeout 5 -s https://codeberg.org/firebadnofire/cloudflare-toolbox/raw/branch/main/version.txt | sed -n -e 3p)
 
-#compare version
+# Compare version
 bypass=false
 
 # Check for the -b or --bypass flag
@@ -37,7 +38,7 @@ else
   fi
 fi
 
-#check for dependencies
+# Check for dependencies
 if ! command -v curl &> /dev/null; then
     echo "curl could not be found"
     sleep 1
@@ -75,32 +76,30 @@ store_gpg_data() {
   # Encrypt data with GPG and save as auth.gpg.bin
   echo -e "APIKEY=$APIKEY\nEMAIL=$EMAIL\nZONE_ID=$ZONE_ID" | gpg --encrypt --recipient "$GPG_KEY_ID" --output "$CONFIG_DIR/auth.gpg.bin"
 
-  # Save the GPG key ID to auth.txt
-  echo "GPG_KEY_ID=$GPG_KEY_ID" > "$CONFIG_DIR/auth.txt"
-
   # Set restrictive permissions
   chmod 600 "$CONFIG_DIR/auth.gpg.bin"
-  chmod 600 "$CONFIG_DIR/auth.txt"
 
-  # Delete auth.bin or auth.txt if they exist
+  # Delete auth.bin if it exists
   [ -f "$CONFIG_DIR/auth.bin" ] && rm -f "$CONFIG_DIR/auth.bin"
-  [ -f "$CONFIG_DIR/auth.txt" ] && rm -f "$CONFIG_DIR/auth.txt"
 
   echo "Data has been encrypted with GPG and stored securely in $CONFIG_DIR/auth.gpg.bin"
 }
 
-# Function to generate a new GPG key
+# Function to generate a new GPG key with static email and security optimizations
 generate_gpg_key() {
   local EMAIL="cloudflare-toolbox@localhost"
-  local PASSWORD="$1"
 
-  # Generate GPG key with high-security flags
-  echo -e "Key-Type: 1\nKey-Length: 4096\nSubkey-Type: 1\nSubkey-Length: 4096\nName-Real: Cloudflare Toolbox\nName-Email: $EMAIL\nExpire-Date: 0\nPassphrase: $PASSWORD" | gpg --batch --gen-key
+  # Generate GPG key with security optimizations, no password
+  gpg --batch --gen-key <<EOF
+Key-Type: 1
+Key-Length: 4096
+Subkey-Type: 1
+Subkey-Length: 4096
+Name-Real: Cloudflare Toolbox
+Name-Email: $EMAIL
+Expire-Date: 0
+EOF
 
-  # Fetch the generated key ID
-  GPG_KEY_ID=$(gpg --list-keys --with-colons "$EMAIL" | grep "^pub" | cut -d':' -f5)
-
-  echo "$GPG_KEY_ID"
 }
 
 # Function to store GPG-encrypted data using an existing or new GPG key
@@ -109,20 +108,15 @@ store_with_gpg() {
   case "$GPG_CHOICE" in
     existing)
       echo "You can find your GPG key ID by running 'gpg --list-keys'"
-      read -p "Enter your GPG key ID: " GPG_KEY_ID
+      read -p "Enter your GPG key email: " GPG_KEY_ID
       if ! gpg --list-keys "$GPG_KEY_ID" &> /dev/null; then
         echo "Invalid GPG key ID. Exiting."
         exit 1
       fi
       ;;
     new)
-      read -s -p "Enter password for new GPG key (leave blank for no password): " PASSWORD1
-      echo
-      if [[ -n "$PASSWORD1" ]]; then
-        GPG_KEY_ID=$(generate_gpg_key "$PASSWORD1")
-      else
-        GPG_KEY_ID=$(generate_gpg_key "")
-      fi
+      generate_gpg_key
+      GPG_KEY_ID=$(gpg --list-keys --with-colons "cloudflare-toolbox@localhost" | grep "^pub" | cut -d':' -f5)
       ;;
     *)
       echo "Invalid choice. Exiting."
@@ -147,7 +141,8 @@ read -p "Enter your choice (1, 2, or 3): " ENCRYPTION_CHOICE
 case "$ENCRYPTION_CHOICE" in
   1)
     # Store data in plaintext
-    store_plaintext_data "$APIKEY" "$EMAIL" "$ZONE_ID"
+    echo -e "APIKEY=$APIKEY\nEMAIL=$EMAIL\nZONE_ID=$ZONE_ID" > "$CONFIG_DIR/auth.txt"
+    chmod 600 "$CONFIG_DIR/auth.txt"
     ;;
   2)
     # Prompt for password
@@ -170,7 +165,8 @@ case "$ENCRYPTION_CHOICE" in
     fi
 
     # Securely store encrypted data
-    store_secure_data "$APIKEY" "$EMAIL" "$ZONE_ID" "$PASSWORD1"
+    echo -e "APIKEY=$APIKEY\nEMAIL=$EMAIL\nZONE_ID=$ZONE_ID" | openssl enc -aes-256-cbc -pbkdf2 -salt -out "$CONFIG_DIR/auth.bin" -k "$PASSWORD1"
+    chmod 600 "$CONFIG_DIR/auth.bin"
     ;;
   3)
     store_with_gpg
@@ -180,6 +176,7 @@ case "$ENCRYPTION_CHOICE" in
     exit 1
     ;;
 esac
+
 unset $APIKEY
 unset $EMAIL
 unset $ZONE_ID
