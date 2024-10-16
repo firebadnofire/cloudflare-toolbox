@@ -77,39 +77,9 @@ fi
 
 ### IMPORT VARS ###
 
-import_auth_data() {
-  CONFIG_DIR="$HOME/.config/cloudflare-tools"
-
-  # If plaintext auth.txt exists
-  if [[ -f "$CONFIG_DIR/auth.txt" ]] && [[ ! -f "$CONFIG_DIR/auth.bin" ]]; then
-    # Read variables from plaintext
-    while IFS="=" read -r key value; do
-      case "$key" in
-        APIKEY) APIKEY="$value" ;;
-        EMAIL) EMAIL="$value" ;;
-        ZONE_ID) ZONE_ID="$value" ;;
-      esac
-    done < "$CONFIG_DIR/auth.txt"
-
-  # If encrypted auth.bin exists (password or SSH key)
-  elif [[ -f "$CONFIG_DIR/auth.bin" ]]; then
-    if [[ -f "$CONFIG_DIR/auth.txt" ]]; then
-# SSH key decryption
-      PRIVKEY_PATH="$HOME/.ssh/id_rsa"
-      decrypted_data=$(openssl pkeyutl -decrypt -inkey "$PRIVKEY_PATH" -in "$CONFIG_DIR/auth.bin" 2>/dev/null)
-    else
-      # Password decryption
-      read -s -p "Enter password: " PASSWORD
-      decrypted_data=$(openssl enc -aes-256-cbc -d -pbkdf2 -in "$CONFIG_DIR/auth.bin" -k "$PASSWORD" 2>/dev/null)
-    fi
-eval "$decrypted_data"
-  else
-    echo "No valid auth file found."
-    exit 1
-  fi
-}
-
-import_auth_data
+EMAIL=$(cfgetauth | grep EMAIL | sed 's/EMAIL //g')
+APIKEY=$(cfgetauth | grep APIKEY | sed 's/APIKEY //g')
+ZONE_ID=$(cfgetauth | grep ZONE_ID | sed 's/ZONE_ID //g')
 
 ### END IMPORT VARS ###
 
