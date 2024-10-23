@@ -39,11 +39,29 @@ If you decide you do not need or want to encrypt the auth.txt file, you may. Thi
 
 # Installation of Cloudflare Toolbox on various systems:
 
+## Generic
+
+```
+curl -fsSL archuser.org/cftb.sh | bash
+```
+
+or
+
+```
+git clone https://codeberg.org/firebadnofire/cloudflare-toolbox
+cd cloudflare-toolbox
+./quick-install.sh
+```
+
+Both execute the same code, the only difference is method of acquisition (curl and pipe to bash vs git and loading to bash).
+
 ## Debian:
 
 ```
 sudo apt install -y bash curl openssl jq
 git clone https://codeberg.org/firebadnofire/cloudflare-toolbox
+cd cloudflare-toolbox
+sudo make install
 ```
 
 ## Fedora/RHEL:
@@ -51,17 +69,23 @@ git clone https://codeberg.org/firebadnofire/cloudflare-toolbox
 ```
 sudo dnf install -y bash curl openssl jq
 git clone https://codeberg.org/firebadnofire/cloudflare-toolbox
+cd cloudflare-toolbox
+sudo make install
 ```
 ## Arch:
 
 ```
 sudo pacman --needed -S bash curl openssl jq
 git clone https://codeberg.org/firebadnofire/cloudflare-toolbox
+cd cloudflare-toolbox
+sudo make install
 ```
 ## FreeBSD:
 
 ```
-pkg bash curl openssl jq
+pkg install bash curl openssl jq
 git clone https://codeberg.org/firebadnofire/cloudflare-toolbox
+cd cloudflare-toolbox
+sudo make install
 ```
 

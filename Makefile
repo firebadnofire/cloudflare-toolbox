@@ -1,56 +1,34 @@
-all:
-	@echo RUN \'make install\' to install the scripts
-	@echo RUN \'make uninstall\' or \'make deinstall\' to uninstall the scripts
-	@echo RUN \'make reinstall\' or \'make update\' to update after running \'git pull\'
+# List of scripts
+SCRIPTS = cfgetauth cflocate cfplace cfremove cfsetauth cfdelauth
 
-install:
-	install -m 555 cfgetauth /usr/local/bin
-	install -m 555 cflocate /usr/local/bin
-	install -m 555 cfplace /usr/local/bin
-	install -m 555 cfremove /usr/local/bin
-	install -m 555 cfsetauth /usr/local/bin
-	install -m 555 cfdelauth /usr/local/bin
+# Installation paths
+PREFIX ?= /usr/local
+BINDIR = $(PREFIX)/bin
 
-deinstall:
-	rm /usr/local/bin/cfgetauth
-	rm /usr/local/bin/cflocate
-	rm /usr/local/bin/cfplace
-	rm /usr/local/bin/cfremove
-	rm /usr/local/bin/cfsetauth
-	rm /usr/local/bin/cfdelauth
+.PHONY: all help install uninstall reinstall update
+
+all: help
+
+help:
+	@echo "Available targets:"
+	@echo "  install       - Install the scripts"
+	@echo "  uninstall     - Uninstall the scripts"
+	@echo "  reinstall     - Uninstall and then install the scripts"
+	@echo "  update        - Alias for 'reinstall'"
+
+install: $(SCRIPTS)
+	@echo "Installing scripts to $(BINDIR)"
+	install -d $(BINDIR)
+	for script in $(SCRIPTS); do \
+		install -m 755 $$script $(BINDIR); \
+	done
 
 uninstall:
-	rm /usr/local/bin/cfgetauth
-	rm /usr/local/bin/cflocate
-	rm /usr/local/bin/cfplace
-	rm /usr/local/bin/cfremove
-	rm /usr/local/bin/cfsetauth
-	rm /usr/local/bin/cfdelauth
+	@echo "Uninstalling scripts from $(BINDIR)"
+	for script in $(SCRIPTS); do \
+		rm -f $(BINDIR)/$$script; \
+	done
 
-reinstall:
-	rm /usr/local/bin/cfgetauth
-	rm /usr/local/bin/cflocate
-	rm /usr/local/bin/cfplace
-	rm /usr/local/bin/cfremove
-	rm /usr/local/bin/cfsetauth
-	rm /usr/local/bin/cfdelauth
-	install -m 555 cfgetauth /usr/local/bin
-	install -m 555 cflocate /usr/local/bin
-	install -m 555 cfplace /usr/local/bin
-	install -m 555 cfremove /usr/local/bin
-	install -m 555 cfsetauth /usr/local/bin
-	install -m 555 cfdelauth /usr/local/bin
+reinstall: uninstall install
 
-update:
-	rm /usr/local/bin/cfgetauth
-	rm /usr/local/bin/cflocate
-	rm /usr/local/bin/cfplace
-	rm /usr/local/bin/cfremove
-	rm /usr/local/bin/cfsetauth
-	rm /usr/local/bin/cfdelauth
-	install -m 555 cfgetauth /usr/local/bin
-	install -m 555 cflocate /usr/local/bin
-	install -m 555 cfplace /usr/local/bin
-	install -m 555 cfremove /usr/local/bin
-	install -m 555 cfsetauth /usr/local/bin
-	install -m 555 cfdelauth /usr/local/bin
+update: reinstall
