@@ -20,6 +20,13 @@ for arg in "$@"; do
   if [[ "$arg" == "-b" || "$arg" == "--bypass" ]]; then
     bypass=true
   fi
+
+  # Check for the -i or --in flag
+  if [[ "$arg" == "-i" || "$arg" == "--in" ]]; then
+    input_file="true"
+    input_file_path="$2"
+  fi
+
 done
 
 if [[ "$latest" == curl:* ]]; then
@@ -127,9 +134,38 @@ store_with_gpg() {
 }
 
 # Prompt for user input
-read -p "Enter your Cloudflare API Global Key: " APIKEY
-read -p "Enter your Cloudflare email: " EMAIL
-read -p "Enter your Cloudflare Zone ID: " ZONE_ID
+if [[ "$input_file" == "true" && -f "$input_file_path" ]]; then
+  # Read from input file
+  while IFS= read -r line; do
+    key="$(echo "$line" | cut -d ' ' -f 1)"
+    value="$(echo "$line" | cut -d ' ' -f 2)"
+    case "$key" in
+      APIKEY) APIKEY="$value" ;;
+      EMAIL) EMAIL="$value" ;;
+      ZONE_ID) ZONE_ID="$value" ;;
+    esac
+  done < "$input_file_path"
+else
+  # Prompt for stdin input if available or read from prompts
+  if [ ! -t 0 ]; then
+    while IFS= read -r line; do
+      key="$(echo "$line" | cut -d ' ' -f 1)"
+      value="$(echo "$line" | cut -d ' ' -f 2)"
+      case "$key" in
+        APIKEY) APIKEY="$value" ;;
+        EMAIL) EMAIL="$value" ;;
+        ZONE_ID) ZONE_ID="$value" ;;
+      esac
+    done
+  fi
+
+  # If variables are still empty, prompt for input
+  if [ -z "$APIKEY" ] || [ -z "$EMAIL" ] || [ -z "$ZONE_ID" ]; then
+    read -p "Enter your Cloudflare API Global Key: " APIKEY
+    read -p "Enter your Cloudflare email: " EMAIL
+    read -p "Enter your Cloudflare Zone ID: " ZONE_ID
+  fi
+fi
 
 # Prompt for encryption method
 echo "Choose an encryption method:"
@@ -180,4 +216,3 @@ esac
 unset $APIKEY
 unset $EMAIL
 unset $ZONE_ID
-
