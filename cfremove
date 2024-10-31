@@ -80,9 +80,11 @@ fi
 
 ### IMPORT VARS ###
 
-EMAIL=$(cfgetauth | grep EMAIL | sed 's/EMAIL //g')
-APIKEY=$(cfgetauth | grep APIKEY | sed 's/APIKEY //g')
-ZONE_ID=$(cfgetauth | grep ZONE_ID | sed 's/ZONE_ID //g')
+authinfo=$(cfgetauth)
+echo ""
+EMAIL=$(echo "$authinfo" | grep EMAIL | sed 's/EMAIL //g')
+APIKEY=$(echo "$authinfo" | grep APIKEY | sed 's/APIKEY //g')
+ZONE_ID=$(echo "$authinfo" | grep ZONE_ID | sed 's/ZONE_ID //g')
 
 ### END IMPORT VARS ###
 
