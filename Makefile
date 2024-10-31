@@ -1,5 +1,5 @@
 # List of scripts
-SCRIPTS = cfgetauth cflocate cfplace cfremove cfsetauth cfdelauth
+SCRIPTS = cfgetauth cflocate cfplace cfremove cfsetauth cfdelauth cfswitchauth
 
 # Installation paths
 PREFIX ?= /usr/local
