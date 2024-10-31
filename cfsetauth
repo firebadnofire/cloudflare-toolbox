@@ -9,24 +9,19 @@ YELLOW='\033[0;33m'
 # Check version
 current="version=1.0"
 
-echo "Checking version using codeberg:"
+echo "Checking version using Codeberg:"
 latest=$(curl --connect-timeout 5 -s https://codeberg.org/firebadnofire/cloudflare-toolbox/raw/branch/main/version.txt | sed -n -e 3p)
 
-# Compare version
 bypass=false
 
 # Check for the -b or --bypass flag
 for arg in "$@"; do
   if [[ "$arg" == "-b" || "$arg" == "--bypass" ]]; then
     bypass=true
+  elif [[ "$arg" == "-i" || "$arg" == "--in" ]]; then
+    input_file="$2"
+    shift 2
   fi
-
-  # Check for the -i or --in flag
-  if [[ "$arg" == "-i" || "$arg" == "--in" ]]; then
-    input_file="true"
-    input_file_path="$2"
-  fi
-
 done
 
 if [[ "$latest" == curl:* ]]; then
@@ -36,8 +31,6 @@ elif [[ "$latest" == "$current" ]]; then
 else
   echo -e "${RED}Your software is out of date!${NC} Pull the latest repo to update!"
   echo -e "Tip: You may bypass this by invoking -b or --bypass"
-
-  # If the bypass flag isn't set, exit the script
   if [[ "$bypass" != true ]]; then
     exit
   else
@@ -45,58 +38,54 @@ else
   fi
 fi
 
-# Check for dependencies
-if ! command -v curl &> /dev/null; then
-    echo "curl could not be found"
+for cmd in curl openssl jq gpg; do
+  if ! command -v "$cmd" &>/dev/null; then
+    echo "$cmd could not be found"
     sleep 1
     exit
-fi
-if ! command -v openssl &> /dev/null; then
-    echo "openssl could not be found"
-    sleep 1
-    exit
-fi
-if ! command -v jq &> /dev/null; then
-    echo "jq could not be found"
-    sleep 1
-    exit
-fi
-if ! command -v gpg &> /dev/null; then
-    echo "gpg could not be found"
-    sleep 1
-    exit
-fi
+  fi
+done
 
-# Directory for storing auth files
 CONFIG_DIR="$HOME/.config/cloudflare-tools"
-
-# Create directory if it doesn't exist
 mkdir -p "$CONFIG_DIR"
 
-# Function to securely store data with GPG encryption
-store_gpg_data() {
-  local APIKEY="$1"
-  local EMAIL="$2"
-  local ZONE_ID="$3"
-  local GPG_KEY_ID="$4"
-
-  # Encrypt data with GPG and save as auth.gpg.bin
-  echo -e "APIKEY=$APIKEY\nEMAIL=$EMAIL\nZONE_ID=$ZONE_ID" | gpg --encrypt --recipient "$GPG_KEY_ID" --output "$CONFIG_DIR/auth.gpg.bin"
-
-  # Set restrictive permissions
-  chmod 600 "$CONFIG_DIR/auth.gpg.bin"
-
-  # Delete auth.bin if it exists
-  [ -f "$CONFIG_DIR/auth.bin" ] && rm -f "$CONFIG_DIR/auth.bin"
-
-  echo "Data has been encrypted with GPG and stored securely in $CONFIG_DIR/auth.gpg.bin"
+# Function to load variables from an input file or stdin
+load_vars_from_input() {
+  local input="$1"
+  if [[ -n "$input" && -f "$input" ]]; then
+    source "$input"
+  else
+    while IFS=' ' read -r key value; do
+      case "$key" in
+        APIKEY) APIKEY="$value" ;;
+        EMAIL) EMAIL="$value" ;;
+        ZONE_ID) ZONE_ID="$value" ;;
+      esac
+    done
+  fi
 }
 
-# Function to generate a new GPG key with static email and security optimizations
+# Use input file or stdin if provided
+if [[ -n "$input_file" ]]; then
+  load_vars_from_input "$input_file"
+elif [[ ! -t 0 ]]; then
+  load_vars_from_input "/dev/stdin"
+fi
+
+# Prompt for variables if not provided via input
+[[ -z "$APIKEY" ]] && read -p "Enter your Cloudflare API Global Key: " APIKEY
+[[ -z "$EMAIL" ]] && read -p "Enter your Cloudflare email: " EMAIL
+[[ -z "$ZONE_ID" ]] && read -p "Enter your Cloudflare Zone ID: " ZONE_ID
+
+store_gpg_data() {
+  echo -e "APIKEY=$APIKEY\nEMAIL=$EMAIL\nZONE_ID=$ZONE_ID" | gpg --encrypt --recipient "$1" --output "$CONFIG_DIR/auth.gpg.bin"
+  chmod 600 "$CONFIG_DIR/auth.gpg.bin"
+  [ -f "$CONFIG_DIR/auth.bin" ] && rm -f "$CONFIG_DIR/auth.bin"
+  echo "Data has been encrypted with GPG and stored securely."
+}
+
 generate_gpg_key() {
   local EMAIL="cloudflare-toolbox@localhost"
-
-  # Generate GPG key with security optimizations, no password
   gpg --batch --gen-key <<EOF
 Key-Type: 1
 Key-Length: 4096
@@ -106,17 +95,14 @@ Name-Real: Cloudflare Toolbox
 Name-Email: $EMAIL
 Expire-Date: 0
 EOF
-
 }
 
-# Function to store GPG-encrypted data using an existing or new GPG key
 store_with_gpg() {
-  read -p "Do you want to use an existing GPG key or generate a new one? (existing/new): " GPG_CHOICE
+  read -p "Use existing or generate new GPG key? (existing/new): " GPG_CHOICE
   case "$GPG_CHOICE" in
     existing)
-      echo "You can find your GPG key ID by running 'gpg --list-keys'"
       read -p "Enter your GPG key email: " GPG_KEY_ID
-      if ! gpg --list-keys "$GPG_KEY_ID" &> /dev/null; then
+      if ! gpg --list-keys "$GPG_KEY_ID" &>/dev/null; then
         echo "Invalid GPG key ID. Exiting."
         exit 1
       fi
@@ -130,45 +116,10 @@ store_with_gpg() {
       exit 1
       ;;
   esac
-  store_gpg_data "$APIKEY" "$EMAIL" "$ZONE_ID" "$GPG_KEY_ID"
+  store_gpg_data "$GPG_KEY_ID"
 }
 
-# Prompt for user input
-if [[ "$input_file" == "true" && -f "$input_file_path" ]]; then
-  # Read from input file
-  while IFS= read -r line; do
-    key="$(echo "$line" | cut -d ' ' -f 1)"
-    value="$(echo "$line" | cut -d ' ' -f 2)"
-    case "$key" in
-      APIKEY) APIKEY="$value" ;;
-      EMAIL) EMAIL="$value" ;;
-      ZONE_ID) ZONE_ID="$value" ;;
-    esac
-  done < "$input_file_path"
-else
-  # Prompt for stdin input if available or read from prompts
-  if [ ! -t 0 ]; then
-    while IFS= read -r line; do
-      key="$(echo "$line" | cut -d ' ' -f 1)"
-      value="$(echo "$line" | cut -d ' ' -f 2)"
-      case "$key" in
-        APIKEY) APIKEY="$value" ;;
-        EMAIL) EMAIL="$value" ;;
-        ZONE_ID) ZONE_ID="$value" ;;
-      esac
-    done
-  fi
-
-  # If variables are still empty, prompt for input
-  if [ -z "$APIKEY" ] || [ -z "$EMAIL" ] || [ -z "$ZONE_ID" ]; then
-    read -p "Enter your Cloudflare API Global Key: " APIKEY
-    read -p "Enter your Cloudflare email: " EMAIL
-    read -p "Enter your Cloudflare Zone ID: " ZONE_ID
-  fi
-fi
-
-# Prompt for encryption method
-echo "Choose an encryption method:"
+echo "Choose encryption method:"
 echo "1) Store in plaintext"
 echo "2) Encrypt with password"
 echo "3) Encrypt with GPG"
@@ -176,31 +127,16 @@ read -p "Enter your choice (1, 2, or 3): " ENCRYPTION_CHOICE
 
 case "$ENCRYPTION_CHOICE" in
   1)
-    # Store data in plaintext
     echo -e "APIKEY=$APIKEY\nEMAIL=$EMAIL\nZONE_ID=$ZONE_ID" > "$CONFIG_DIR/auth.txt"
     chmod 600 "$CONFIG_DIR/auth.txt"
     ;;
   2)
-    # Prompt for password
-    echo "You may enter a password to encrypt the data:"
     read -s -p "Enter password: " PASSWORD1
     echo
-    echo "Re-enter password to confirm:"
-    read -s -p "Enter password: " PASSWORD2
+    read -s -p "Re-enter password to confirm: " PASSWORD2
     echo
-
-    if [[ "$PASSWORD1" != "$PASSWORD2" ]]; then
-      echo "Passwords do not match. Exiting for security reasons."
-      exit 1
-    fi
-
-    # Check for minimum password length
-    if [[ ${#PASSWORD1} -lt 8 ]]; then
-      echo "Password is too short (minimum 8 characters). Exiting."
-      exit 1
-    fi
-
-    # Securely store encrypted data
+    [[ "$PASSWORD1" != "$PASSWORD2" ]] && { echo "Passwords do not match."; exit 1; }
+    [[ ${#PASSWORD1} -lt 8 ]] && { echo "Password too short."; exit 1; }
     echo -e "APIKEY=$APIKEY\nEMAIL=$EMAIL\nZONE_ID=$ZONE_ID" | openssl enc -aes-256-cbc -pbkdf2 -salt -out "$CONFIG_DIR/auth.bin" -k "$PASSWORD1"
     chmod 600 "$CONFIG_DIR/auth.bin"
     ;;
@@ -213,6 +149,4 @@ case "$ENCRYPTION_CHOICE" in
     ;;
 esac
 
-unset $APIKEY
-unset $EMAIL
-unset $ZONE_ID
+unset APIKEY EMAIL ZONE_ID

@@ -19,6 +19,10 @@ Usage: cfsetauth [-i FILE]
 cfgetauth - (decrypt and) print the authorization info
 Usage: cfgetauth 
 (interactive)
+
+cfswitchauth - switch authorization files for different zones
+Usage: cfswitchauth
+(interactive)
 ```
 
 When running `cfsetauth` the system will create `auth.txt` and prompt you for the below items. These are stored in auth.txt and/or auth.bin (and can be encrypted at store time by the script using a password, which you SHOULD do.) and loaded by the scripts (will be prompted at runtime for decryption password if needed). As zone IDs are used to make requests, you can only use the scripts on one domain at a time. To switch operating domains, switch the zone ID to the desired domain's zone ID.
