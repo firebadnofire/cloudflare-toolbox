@@ -13,7 +13,7 @@ cflocate - remove a DNS record
 Usage: cflocate (sub.your.domain/ID)
 
 cfsetauth - set authorization credentials (and optionally encrypt them with a password)
-Usage: cfsetauth [-i FILE]
+Usage: cfsetauth
 (interactive)
 
 cfgetauth - (decrypt and) print the authorization info
