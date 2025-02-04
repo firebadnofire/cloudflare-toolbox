@@ -27,9 +27,9 @@ main() {
     fi
 
 	#packages:
-	packages_d="bash curl openssl jq" # Debian packages
-	packages_a="bash curl openssl jq" # Arch packages
-	packages_r="bash curl openssl jq" # Rhel/Fedora packages
+	packages_d="make bash curl openssl jq" # Debian packages
+	packages_a="make bash curl openssl jq" # Arch packages
+	packages_r="make bash curl openssl jq" # Rhel/Fedora packages
 
 # Define funcs
 

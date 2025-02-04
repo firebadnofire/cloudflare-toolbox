@@ -39,7 +39,7 @@ If you decide you do not need or want to encrypt the auth.txt file, you may. Thi
 
 # Dependencies
 
-`bash curl openssl jq`
+`make bash curl openssl jq`
 
 # Installation of Cloudflare Toolbox on various systems:
 
