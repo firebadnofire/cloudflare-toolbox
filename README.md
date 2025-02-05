@@ -39,7 +39,7 @@ If you decide you do not need or want to encrypt the auth.txt file, you may. Thi
 
 # Dependencies
 
-`make bash curl openssl jq`
+`bash curl openssl jq make gnupg2`
 
 # Installation of Cloudflare Toolbox on various systems:
 
@@ -62,7 +62,7 @@ Both execute the same code, the only difference is method of acquisition (curl a
 ## Debian:
 
 ```
-sudo apt install -y bash curl openssl jq
+sudo apt install -y bash curl openssl jq make gnupg2
 git clone https://codeberg.org/firebadnofire/cloudflare-toolbox
 cd cloudflare-toolbox
 sudo make install
@@ -71,7 +71,7 @@ sudo make install
 ## Fedora/RHEL:
 
 ```
-sudo dnf install -y bash curl openssl jq
+sudo dnf install -y bash curl openssl jq make gnupg2
 git clone https://codeberg.org/firebadnofire/cloudflare-toolbox
 cd cloudflare-toolbox
 sudo make install
@@ -79,7 +79,7 @@ sudo make install
 ## Arch:
 
 ```
-sudo pacman --needed -S bash curl openssl jq
+sudo pacman --needed -S bash curl openssl jq make gnupg2
 git clone https://codeberg.org/firebadnofire/cloudflare-toolbox
 cd cloudflare-toolbox
 sudo make install
@@ -87,7 +87,7 @@ sudo make install
 ## FreeBSD:
 
 ```
-pkg install bash curl openssl jq
+pkg install bash curl openssl jq make gnupg2
 git clone https://codeberg.org/firebadnofire/cloudflare-toolbox
 cd cloudflare-toolbox
 sudo make install
